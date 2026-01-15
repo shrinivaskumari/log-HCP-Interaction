@@ -1,0 +1,231 @@
+SETUP FOR AI-POWERED HCP CRM (v2.0 with LangGraph + Groq)
+
+==============================================================
+PREREQUISITE: Set Groq API Key
+==============================================================
+
+1. Get your Groq API key from https://console.groq.com/keys
+2. Set environment variable (Windows PowerShell):
+   
+   $env:GROQ_API_KEY = "your-groq-api-key-here"
+   
+   Or create a .env file in backend folder with:
+   GROQ_API_KEY=your-groq-api-key-here
+
+==============================================================
+BACKEND SETUP (with AI)
+==============================================================
+
+1. Install new AI dependencies:
+   cd hcp-crm\backend
+   .\venv\Scripts\activate
+   pip install langgraph langchain langchain-groq groq
+
+2. Verify installation:
+   python -c "import langgraph; import langchain_groq; print('✓ AI packages installed')"
+
+3. Start backend:
+   Set GROQ_API_KEY environment variable first!
+   python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+==============================================================
+FRONTEND SETUP
+==============================================================
+
+cd hcp-crm\frontend
+npm install (if needed)
+npm start
+
+==============================================================
+API ENDPOINTS (NEW)
+==============================================================
+
+Traditional:
+- POST /interactions - Log interaction manually
+- GET /interactions - List interactions
+
+AI-Powered (NEW):
+- POST /ai/chat - Send user message, AI extracts structured data
+- POST /ai/chat/confirm - Save confirmed interaction
+
+==============================================================
+HOW IT WORKS
+==============================================================
+
+LangGraph Agent Flow:
+1. USER INPUT → React ChatInteraction component
+2. Chat message sent to POST /ai/chat endpoint
+3. FastAPI calls LangGraph agent with user message
+4. LangGraph runs 4-node graph:
+   - Node 1: Receive input (receive_input)
+   - Node 2: LLM processing (process_with_llm) - Uses Groq gemma2-9b-it
+   - Node 3: Tool invocation (invoke_tools) - Calls 5 tools:
+     * LogInteractionTool - Extract and structure data
+     * EditInteractionTool - Modify records
+     * HcpLookupTool - Search existing HCPs
+     * ComplianceCheckTool - Validate compliance
+     * NextBestActionTool - Suggest follow-ups
+   - Node 4: Response generation (generate_response)
+5. Agent returns extracted interaction
+6. React displays extracted data for user review
+7. User confirms and clicks "Save Interaction"
+8. POST /ai/chat/confirm saves to database
+
+==============================================================
+5 TOOLS IMPLEMENTED
+==============================================================
+
+1. LogInteractionTool
+   - Extracts HCP name, interaction type, notes from conversation
+   - Output: Structured JSON matching DB schema
+   - Example: "Dr. Sarah Johnson, Visit, discussed product launch"
+
+2. EditInteractionTool
+   - Modifies existing interaction fields
+   - Can update hcp_name, interaction_type, notes
+   - Example: "Change type to Call for interaction 5"
+
+3. HcpLookupTool
+   - Searches database for existing HCP by name
+   - Prevents duplicates
+   - Returns suggestions if not exact match
+
+4. ComplianceCheckTool
+   - Validates notes for risky language
+   - Detects off-label, experimental, unapproved mentions
+   - Suggests compliant rewording
+
+5. NextBestActionTool
+   - Analyzes interaction type and content
+   - Recommends follow-up actions
+   - Example: Visit → Schedule follow-up within 2 weeks
+
+==============================================================
+USAGE EXAMPLE
+==============================================================
+
+1. Open http://localhost:3000
+2. Click "🤖 AI Chat" tab
+3. Type: "I just had a virtual meeting with Dr. John Smith. We discussed our new product and got positive feedback. He wants to schedule a follow-up next month."
+4. AI processes through LangGraph:
+   - Extracts: HCP="Dr. John Smith", Type="Virtual", Notes="Positive feedback on new product, follow-up scheduled next month"
+   - Runs compliance check (passed)
+   - Suggests actions (schedule follow-up)
+5. Review extracted data
+6. Click "✓ Save Interaction"
+7. Interaction saved to database
+8. Appears in interaction list below
+
+==============================================================
+TROUBLESHOOTING
+==============================================================
+
+Error: "GROQ_API_KEY not configured"
+- Set GROQ_API_KEY environment variable before running backend
+- Restart backend after setting variable
+
+Error: "ModuleNotFoundError: No module named 'langgraph'"
+- Install AI packages: pip install langgraph langchain langchain-groq groq
+
+Error: "AI processing failed"
+- Check Groq API key is valid
+- Check internet connection (needs to call Groq API)
+- Check backend logs for detailed error
+
+Chat not appearing:
+- Make sure both backend and frontend are running
+- Check browser console for errors (F12)
+- Verify API endpoint is working: http://localhost:8000/docs
+
+==============================================================
+PROJECT STRUCTURE
+==============================================================
+
+backend/app/ai/
+├── agent.py          # LangGraph agent implementation
+├── tools.py          # 5 tool implementations
+└── __init__.py       # Package exports
+
+backend/app/routes/
+├── interaction.py    # Traditional endpoints
+└── ai_chat.py        # NEW: AI-powered endpoints
+
+frontend/src/
+├── ChatInteraction.jsx  # NEW: Chat UI component
+├── App.js            # Updated with tabs
+├── api.js            # Updated with AI endpoints
+└── styles.css        # Updated with chat styles
+
+==============================================================
+LANGGRAPH ARCHITECTURE EXPLAINED
+==============================================================
+
+LangGraph is a framework for building stateful AI agents.
+
+Key Concepts:
+- StateGraph: Defines the agent's workflow
+- Nodes: Processing steps (receive, process, tool invoke, respond)
+- Edges: Connections between nodes
+- State: Shared data structure passed between nodes
+
+Our Agent Flow:
+  receive_input (get user message)
+         ↓
+  process_with_llm (Groq gemma2-9b-it analyzes, decides tools)
+         ↓
+  invoke_tools (Execute: log_interaction, hcp_lookup, compliance_check, etc.)
+         ↓
+  generate_response (Format output for frontend)
+         ↓
+  END
+
+Benefits:
+- Modular: Easy to add/remove tools
+- Controllable: Explicit flow, not just prompting
+- Debuggable: Can inspect each step
+- Extensible: Can add memory, multi-turn conversations
+
+==============================================================
+TESTING THE AI FEATURES
+==============================================================
+
+Via React UI:
+1. Go to http://localhost:3000
+2. Click AI Chat tab
+3. Describe an interaction naturally
+
+Via API (curl):
+curl -X POST http://localhost:8000/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"user_message":"I met with Dr. Sarah Johnson for a virtual call about our new product."}'
+
+Via API Docs:
+- Go to http://localhost:8000/docs
+- Find POST /ai/chat
+- Try it out with example message
+
+==============================================================
+RUNNING DEMO
+==============================================================
+
+Steps for 10-15 minute demo:
+1. Start backend with Groq key set
+2. Start frontend
+3. Show traditional form logging (1-2 interactions)
+4. Switch to AI Chat tab
+5. Type natural description: "I just had a visit with Dr. Michael Chen. We discussed clinical data and he requested samples."
+6. Show AI extracted the data correctly
+7. Edit one field to show flexibility
+8. Save and show it in interaction list
+9. Do another example showing compliance check
+10. Show final interaction table with all entries
+
+This demonstrates:
+- LangGraph orchestration
+- 5 tools in action
+- Groq LLM extraction capability
+- User-friendly AI workflow
+
+==============================================================
+
+Ready to demo! 🚀

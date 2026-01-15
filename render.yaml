@@ -1,0 +1,26 @@
+services:
+  # Backend API Service
+  - type: web
+    name: hcp-crm-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        scope: build,runtime
+      - key: DATABASE_URL
+        scope: runtime
+      - key: ENVIRONMENT
+        value: production
+    healthCheckPath: /docs
+
+  # Frontend Service
+  - type: static_site
+    name: hcp-crm-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://hcp-crm-backend.onrender.com
