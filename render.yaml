@@ -1,4 +1,9 @@
 services:
+  # PostgreSQL Database
+  - type: pserv
+    name: hcp-crm-db
+    ipAllowList: []
+
   # Backend API Service
   - type: web
     name: hcp-crm-backend
@@ -10,10 +15,14 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: hcp-crm-db
+          property: connectionString
       - key: ENVIRONMENT
         value: production
     healthCheckPath: /docs
+    depends_on:
+      - hcp-crm-db
 
   # Frontend Service
   - type: web
