@@ -8,9 +8,9 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GROQ_API_KEY
-        scope: build,runtime
+        sync: false
       - key: DATABASE_URL
-        scope: runtime
+        sync: false
       - key: ENVIRONMENT
         value: production
     healthCheckPath: /docs
@@ -18,7 +18,7 @@ services:
   # Frontend Service
   - type: web
     name: hcp-crm-frontend
-    runtime: node
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: build
