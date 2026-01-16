@@ -16,8 +16,9 @@ services:
     healthCheckPath: /docs
 
   # Frontend Service
-  - type: static_site
+  - type: web
     name: hcp-crm-frontend
+    runtime: node
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: build
