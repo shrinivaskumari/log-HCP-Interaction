@@ -25,4 +25,3 @@ services:
     envVars:
       - key: REACT_APP_API_URL
         value: https://hcp-crm-backend.onrender.com
-        value: https://hcp-crm-backend.onrender.com
