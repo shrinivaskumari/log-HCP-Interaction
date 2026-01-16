@@ -1,8 +1,4 @@
 services:
-  # PostgreSQL Database
-  - type: pserv
-    name: hcp-crm-db
-
   # Backend API Service
   - type: web
     name: hcp-crm-backend
@@ -28,4 +24,5 @@ services:
     startCommand: npx serve -s build -p $PORT
     envVars:
       - key: REACT_APP_API_URL
+        value: https://hcp-crm-backend.onrender.com
         value: https://hcp-crm-backend.onrender.com
