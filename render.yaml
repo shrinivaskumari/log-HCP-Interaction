@@ -18,9 +18,10 @@ services:
   # Frontend Service
   - type: web
     name: hcp-crm-frontend
-    runtime: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/build
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npx serve -s build -p $PORT
     envVars:
       - key: REACT_APP_API_URL
         value: https://hcp-crm-backend.onrender.com
